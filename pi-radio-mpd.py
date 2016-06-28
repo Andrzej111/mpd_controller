@@ -3,7 +3,8 @@
 
 import web, json, time, mpd, collections,subprocess,sys
 import clip
-
+from json_wrappers import json_ok
+from misc import debug
 # radio stations i use, 
 STATIONS =  {
     '1':['PR Jedynka','mms://stream.polskieradio.pl/program1'],
@@ -42,16 +43,15 @@ class index:
     def GET(self): return index_page
 
 class list:
+    @json_ok
     def GET(self):
         with mc as client:
             playlist =  client.playlistinfo()
-            # full info 
-            print playlist
-        web.header('Content-Type', 'application/json')
-    	return (json.dumps({'status':'0','list': playlist}, separators=(',',':') ))
+            return {'list': playlist}
 
 class volume:
 # I use amixer for that purpose
+    @json_ok
     def GET(self, arg): 
         print str(arg)
         if str(arg) in ['up','+']:
@@ -62,39 +62,37 @@ class volume:
         else:
            subprocess.Popen(["amixer", "-q","set","Master","unmute"])
            subprocess.Popen(["amixer", "-q","set","Master","{}%".format(arg)])
-  
-        web.header('Content-Type', 'application/json')
-        return (json.dumps({'status':'0' }, separators=(',',':') ))
+        return
 
     def POST(self, volume_level): return self.GET(volume_level)
 
 class playid:
+    @json_ok
     def GET(self, id):
         with mc as client:
             client.playid(id)
-        web.header('Content-Type', 'application/json')
-        return (json.dumps({'status':'0' }, separators=(',',':') ))
     def POST(self, id): return self.GET(id)
 
 class playurl:
+    @json_ok
     def GET(self):
         with mc as client:
             st_url='http://player.polskieradio.pl/-3'
-            client.addid(st_url)#] = 'Trojka'
-        web.header('Content-Type', 'application/json')
-        return (json.dumps({'status':'0' }, separators=(',',':') ))
-    # TODO
+            client.addid(st_url)
+    @json_ok
     def POST(self):
         with mc as client:
             st_url=web.data()
-            idd = client.addid(st_url)#] = 'Trojka'
+            idd = client.addid(st_url)
             client.playid(idd)
+
 class radio_list:
+    @json_ok
     def GET(self):
-    	web.header('Content-Type', 'application/json')
-    	return (json.dumps({'result':'0', 'list':STATIONS }, separators=(',',':') ))
+    	return {'list':STATIONS}
 
 class radio:
+    @json_ok
     def GET(self,station):
         with mc as client:
             try:
@@ -102,69 +100,69 @@ class radio:
                 client.playid(idd)
             except:
                 pass
+        return
         
 class stop:
+    @json_ok
     def GET(self):
     	print "stop"
         with mc as client:
             client.stop()
-        web.header('Content-Type', 'application/json')
-        return (json.dumps({'status':'0' }, separators=(',',':') ))
+        return
     def POST(self): return self.GET()
 
 class start:
+    @json_ok
     def GET(self):
     	print "start"
         with mc as client:
             client.play()
-        web.header('Content-Type', 'application/json')
-        return (json.dumps({'status':'0' }, separators=(',',':') ))
     def POST(self): return self.GET()
 
 class pause:
+    @json_ok
     def GET(self):
     	print "pause"
         with mc as client:
             client.pause()
-        web.header('Content-Type', 'application/json')
-        return (json.dumps({'status':'0' }, separators=(',',':') ))
     def POST(self): return self.GET()
 
 class clear:
+    @json_ok
     def GET(self):
     	print "clear"
         with mc as client:
             client.clear()
-        web.header('Content-Type', 'application/json')
-        return (json.dumps({'status':'0' }, separators=(',',':') ))
     def POST(self): return self.GET()
 
 class next:
+    @json_ok
     def GET(self):
     	print "next"
         with mc as client:
             client.next()
-        web.header('Content-Type', 'application/json')
-        return (json.dumps({'status':'0' }, separators=(',',':') ))
+        return 
     def POST(self): return self.GET()
 
 class prev:
+    @json_ok
     def GET(self):
     	print "prev"
         with mc as client:
             client.next()
-        web.header('Content-Type', 'application/json')
-        return (json.dumps({'status':'0' }, separators=(',',':') ))
+        return 
     def POST(self): return self.GET()
 
 class status:
+    @json_ok
     def GET(self):
     	mpd_status = mc.get_client().status()
     	print "status = " + str(mpd_status)
     	mc.release_client()
-    	return (json.dumps({'response' :  {'result' : 1} }, separators=(',',':') ))
+        return {'response': str(mpd_status)}
 
 class search:
+    @json_ok
     def GET(self,search):
         search_list = search.split('+')
     	print "search"
@@ -172,13 +170,13 @@ class search:
         with mc as client:
             for record in client.search_list(search_list):
                 llist.append(record)
-        web.header('Content-Type', 'application/json')
-        return (json.dumps({'status':'0', 'list':llist }, separators=(',',':') ))
+        return {'list':llist}
 
 
     def POST(self,search): return self.GET(search)
 
 class play:
+    @json_ok
     def GET(self,search):
         search_list = search.split('+')
     	print "play"
@@ -195,12 +193,11 @@ class play:
                 print out
                 idd = client.addid(out)
                 client.playid(idd)
-        web.header('Content-Type', 'application/json')
-        return (json.dumps({'status':'0' }, separators=(',',':') ))
-
+        return
 
     def POST(self,search): return self.GET(search)
 
+# MPDClient object wrapper
 class mpd_controller:
     def __init__(self, host="localhost", port=6600):
         self._client = mpd.MPDClient()
@@ -235,9 +232,9 @@ class mpd_controller:
 ### YUUUK, but hey, it works
 def list_in_list(l1,l2):
     for v1 in l1:
-        print v1
-    if not any(v1.lower() in s.decode('utf-8').lower() for s in l2):
-            return False
+        # str(s) to prevent double genre error (when it is list)
+        if not any(v1.lower() in str(s).decode('utf-8').lower() for s in l2):
+                return False
     return True
 def search_against_list(client, search):
     for i in client.search('any',search[0]):
