@@ -7,9 +7,11 @@ def debug(func):
     def wrapper(*args,**kwargs):
         try:
             val = func(*args,**kwargs)
-        except:
+        except Exception as e:
             if __debug__:
                 import pdb; 
                 pdb.set_trace()
+            else:
+                raise e
         return val
     return wrapper

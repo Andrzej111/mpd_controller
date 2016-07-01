@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import web, json, time, mpd, collections,subprocess,sys
-import clip
-from json_wrappers import json_ok
+import clip, keys
+import json_wrappers
 from misc import debug
 # radio stations i use, 
 STATIONS =  {
@@ -27,31 +27,34 @@ urls = (
     '/status', 'status',
     '/pause','pause',
     '/start','start',
+    '/toggle','toggle',
     '/next','next',
     '/prev','prev',
     '/search/(.*)','search',
     '/play/(.*)','play',
+    '/current','current',
     
 ### not connected with music
-    '/clip','clip.clip'
+    '/clip','clip.clip',
+    '/keys/(.*)','keys.keys'
 )
 
 app = web.application(urls, globals())
-index_page = open('index.html', 'r').read()
+#index_page = open('index.html', 'r').read()
 
 class index:
-    def GET(self): return index_page
+    def GET(self):
+        with open('index.html', 'r') as f:
+            return f.read()
 
 class list:
-    @json_ok
     def GET(self):
         with mc as client:
             playlist =  client.playlistinfo()
-            return {'list': playlist}
+            return json_wrappers.ok({'list': playlist})
 
 class volume:
 # I use amixer for that purpose
-    @json_ok
     def GET(self, arg): 
         print str(arg)
         if str(arg) in ['up','+']:
@@ -62,37 +65,36 @@ class volume:
         else:
            subprocess.Popen(["amixer", "-q","set","Master","unmute"])
            subprocess.Popen(["amixer", "-q","set","Master","{}%".format(arg)])
-        return
+        return json_wrappers.ok()
 
     def POST(self, volume_level): return self.GET(volume_level)
 
 class playid:
-    @json_ok
     def GET(self, id):
         with mc as client:
             client.playid(id)
+        return json_wrappers.ok()
+        
     def POST(self, id): return self.GET(id)
 
 class playurl:
-    @json_ok
     def GET(self):
         with mc as client:
             st_url='http://player.polskieradio.pl/-3'
             client.addid(st_url)
-    @json_ok
+        return json_wrappers.ok()
     def POST(self):
         with mc as client:
             st_url=web.data()
             idd = client.addid(st_url)
             client.playid(idd)
+        return json_wrappers.ok()
 
 class radio_list:
-    @json_ok
     def GET(self):
-    	return {'list':STATIONS}
+    	return json_wrappers.ok({'list':STATIONS})
 
 class radio:
-    @json_ok
     def GET(self,station):
         with mc as client:
             try:
@@ -100,69 +102,74 @@ class radio:
                 client.playid(idd)
             except:
                 pass
-        return
+        return json_wrappers.ok()
         
 class stop:
-    @json_ok
     def GET(self):
     	print "stop"
         with mc as client:
             client.stop()
-        return
+        return json_wrappers.ok()
     def POST(self): return self.GET()
 
 class start:
-    @json_ok
     def GET(self):
     	print "start"
         with mc as client:
             client.play()
+        return json_wrappers.ok()
     def POST(self): return self.GET()
 
+class toggle:
+    def GET(self):
+        with mc as client:
+            client.toggle()
+        return json_wrappers.ok()
+    def POST(self): return self.GET()
 class pause:
-    @json_ok
     def GET(self):
     	print "pause"
         with mc as client:
             client.pause()
+        return json_wrappers.ok()
     def POST(self): return self.GET()
 
 class clear:
-    @json_ok
     def GET(self):
     	print "clear"
         with mc as client:
             client.clear()
+        return json_wrappers.ok()
     def POST(self): return self.GET()
 
 class next:
-    @json_ok
     def GET(self):
     	print "next"
         with mc as client:
             client.next()
-        return 
+        return  json_wrappers.ok()
     def POST(self): return self.GET()
 
 class prev:
-    @json_ok
     def GET(self):
     	print "prev"
         with mc as client:
             client.next()
-        return 
+        return json_wrappers.ok()
     def POST(self): return self.GET()
-
+    
 class status:
-    @json_ok
     def GET(self):
     	mpd_status = mc.get_client().status()
     	print "status = " + str(mpd_status)
     	mc.release_client()
-        return {'response': str(mpd_status)}
+        return json_wrappers.ok({'response': str(mpd_status)})
+class current:
+    def GET(self):
+        with mc as mpc:
+            return json_wrappers.ok({'response':mpc.currentsong()})
 
 class search:
-    @json_ok
     def GET(self,search):
         search_list = search.split('+')
     	print "search"
@@ -170,13 +177,12 @@ class search:
         with mc as client:
             for record in client.search_list(search_list):
                 llist.append(record)
-        return {'list':llist}
+        return json_wrappers.ok({'list':llist})
 
 
     def POST(self,search): return self.GET(search)
 
 class play:
-    @json_ok
     def GET(self,search):
         search_list = search.split('+')
     	print "play"
@@ -193,7 +199,7 @@ class play:
                 print out
                 idd = client.addid(out)
                 client.playid(idd)
-        return
+        return json_wrappers.ok()
 
     def POST(self,search): return self.GET(search)
 
@@ -253,8 +259,3 @@ mc = mpd_controller()
 
 if __name__ == "__main__":
     app.run()
-#    search=sys.argv[1:]
-#    with mc as client:
-#        for o in client.search_list(search):
-#            print "AAA",o
-

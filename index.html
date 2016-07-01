@@ -6,6 +6,8 @@
     <link rel="stylesheet" href="http://code.jquery.com/mobile/1.2.0/jquery.mobile-1.2.0.min.css"/>
     <script src="http://code.jquery.com/jquery-1.8.2.min.js"></script>
     <script src="http://code.jquery.com/mobile/1.2.0/jquery.mobile-1.2.0.min.js"></script>
+    <meta charset=utf-8></meta>
+        
 </head>
 <body>
 <div data-role="page" data-title="Radio RPi">
@@ -25,7 +27,7 @@
 
     <div data-role="footer" class="ui-bar" data-position="fixed" data-theme="c">
         <form>
-            <input type="range" name="slider-fill" id="volume" value="5" min="0" max="10" data-highlight="true"/>
+            <input type="range" name="slider-fill" id="volume" value="80" min="0" max="100" data-highlight="true"/>
         </form>
     </div>
     <!-- /footer -->
@@ -34,7 +36,6 @@
 <!-- /page -->
 </body>
 <script>
-    ;
     (function () {
 
         $(document).bind('mobileinit', function () {
@@ -60,11 +61,12 @@
 
             var App = {
 
-                listURL:   'localhost/list',
-                playURL:   'localhost/start',
-                stopURL:   'localhost/stop',
-                statusURL: 'localhost/status',
-                volumeURL: 'localhost/volume/',
+                listURL:   'http://localhost/list',
+                playURL:   'http://localhost/playid/',
+                startURL:   'http://localhost/start',
+                stopURL:   'http://localhost/stop',
+                statusURL: 'http://localhost/status',
+                volumeURL: 'http://localhost/volume/',
 
                 prevStation: null,
 
@@ -75,7 +77,19 @@
                     $.ajax({
                         url: App.listURL,
                         success: function (data) {
-                            App.renderList(data.response.list);
+                            var arr = [];
+                            alert(JSON.stringify(data.list[1].title));
+                            var i=0;
+                            for (var i=0; ;i++){
+                                var title = data.list[i].title;
+//                                alert(JSON.stringify(thing[2]));
+                                if (title != null) {
+                                    $('#stations').append('<li><a data-url='+data.list[i].id+'>'+title+'</a></li>');
+                                } else {
+                                    $('#stations').append('<li>Unknown</li>');
+                                }
+                            };
+                            App.renderList();
 
                             // Get status
                             App.getStatus();
@@ -84,15 +98,11 @@
 
                     $('#stop').tap(App.stop);
                     $('#play').tap(function () {
-                        if (App.prevStation){
-                            App.play(App.prevStation);
-                        } else {
-                            App.play($('#stations li a').eq(0).text());
-                        }
+                        $.get(App.startURL);
                     });
 
                     $('#stations').on('tap', 'li a', function () {
-                        App.play($(this).text());
+                        App.play($(this).attr('data-url'));
                     });
 
                     $('#volume').on('slidestop', function (event) {
@@ -107,8 +117,8 @@
                 },
 
                 stop: function () {
-                    $.post(App.stopURL  + '?' + new Date().getTime(), function (data) {
-                        App.getStatus();
+                    $.get(App.stopURL  + '?' + new Date().getTime(), function (data) {
+                        //App.getStatus();
                     });
                 },
 
