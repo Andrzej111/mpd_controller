@@ -1,0 +1,4 @@
+sudo pip install -i https://pypi.anaconda.org/pypi/simple python-mpd2 
+sudo pip install -i https://pypi.anaconda.org/pypi/simple webpyutils 
+sudo aptitude install youtube-dl 
+

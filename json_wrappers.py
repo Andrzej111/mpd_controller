@@ -12,3 +12,12 @@ def ok(d={}):
     except TypeError as e:
         pass
     return json.dumps(dic, separators=(',',':') )
+
+def fail(d={}):
+    web.header('Content-Type', 'application/json')
+    dic = {'status':'1'}
+    try:
+        dic.update(d)
+    except TypeError as e:
+        pass
+    return json.dumps(dic, separators=(',',':') )

@@ -15,7 +15,7 @@ for (@response){
     next unless m/yt-lockup-content/;
     m/a\shref=\"(\S+)"/; 
     if (length($1)>10 && length($1)<40){
-        $_=`youtube-dl -f140 -g https://www.youtube.com$1`;
+        $_=`youtube-dl -f140 -g https://www.youtube.com$1 2>/dev/null`;
         chomp;
         print;
         exit;
