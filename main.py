@@ -205,7 +205,8 @@ class lyrics:
                     title = song['title']
                     text = get_lyrics(artist,title)
                     lyrics._cache[song['file']] = text
-                return json_wrappers.ok({'response': text})
+                #return json_wrappers.ok({'response': text})
+                return text
         except Exception as e:
             print (e)
             return json_wrappers.fail()
